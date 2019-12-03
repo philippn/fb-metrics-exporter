@@ -1,5 +1,5 @@
 # FRITZ!Box Metrics Exporter
-![Build Status](https://travis-ci.com/philippn/fb-metrics-exporter.svg?branch=master)
+[![Build Status](https://travis-ci.com/philippn/fb-metrics-exporter.svg?branch=master)](https://travis-ci.com/philippn/fb-metrics-exporter)
 
 This repository contains a Spring Boot-powered Java application that can be used to export metrics regarding smart home devices directly attached to the FRITZ!Box into a Prometheus instance for further processing.
 
