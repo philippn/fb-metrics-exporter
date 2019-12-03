@@ -13,4 +13,5 @@ This repository contains a Spring Boot-powered Java application that can be used
 ```
 4. Add a new target to Prometheus pointing to `http://localhost:8080/prometheus`
 5. Start scraping using Prometheus and configure a Grafana Dashboard to your liking
+
 ![Sample Grafana Dashboard](images/grafana.png)
