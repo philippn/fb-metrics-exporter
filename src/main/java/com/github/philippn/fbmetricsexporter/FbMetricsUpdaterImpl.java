@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.ToDoubleFunction;
 
+import javax.annotation.PostConstruct;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +41,8 @@ public class FbMetricsUpdaterImpl implements FbMetricsUpdater {
 	private HomeAutomation homeAutomation;
 	private MeterRegistry meterRegistry;
 
+	private AtomicInteger devicesTotal = new AtomicInteger();
+	private AtomicInteger devicesPresent = new AtomicInteger();
 	private Map<String, AtomicInteger> batteryByDevice = new HashMap<>();
 	private Map<String, AtomicInteger> temperatureByDevice = new HashMap<>();
 	private Map<String, AtomicInteger> hkrTistByDevice = new HashMap<>();
@@ -53,10 +57,21 @@ public class FbMetricsUpdaterImpl implements FbMetricsUpdater {
 		this.meterRegistry = meterRegistry;
 	}
 
+	@PostConstruct
+	public void init() {
+		meterRegistry.gauge("fritzbox_devices_total", devicesTotal);
+		meterRegistry.gauge("fritzbox_devices_present", devicesPresent);
+	}
+
 	@Override
 	public void update() {
 		DeviceList deviceList = homeAutomation.getDeviceListInfos();
+		devicesTotal.set(deviceList.getDevices().size());
+		devicesPresent.set(deviceList.getDevices().stream().mapToInt(d -> d.isPresent() ? 1 : 0).sum());
 		for (Device device : deviceList.getDevices()) {
+			if (!device.isPresent()) {
+				continue;
+			}
 			// Battery
 			AtomicInteger holder = getGaugeHolder(device, batteryByDevice, "fritzbox_device_battery_percent", null);
 			holder.set(device.getBattery());

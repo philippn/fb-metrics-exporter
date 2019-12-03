@@ -52,6 +52,8 @@ class FbMetricsExporterApplicationTests {
 		
 		metricsUpdater.update();
 		
+		assertEquals(2, meterRegistry.find("fritzbox_devices_total").gauge().value());
+		assertEquals(2, meterRegistry.find("fritzbox_devices_present").gauge().value());
 		assertEquals(2, meterRegistry.find("fritzbox_device_battery_percent").gauges().size());
 		assertEquals(2, meterRegistry.find("fritzbox_device_temperature_celsius").gauges().size());
 		assertEquals(2, meterRegistry.find("fritzbox_device_hkr_tist_celsius").gauges().size());
