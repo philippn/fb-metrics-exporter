@@ -1,2 +1,5 @@
 language: java
 jdk: openjdk8
+addons:
+  artifacts:
+    s3_region: "eu-central-1"
