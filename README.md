@@ -14,6 +14,6 @@ This repository contains a Spring Boot-powered Java application that can be used
     java -jar fb-metrics-exporter-x.y.z.jar --fritzbox.password=<the-password>
 ```
 4. Add a new target to Prometheus pointing to `http://localhost:8080/prometheus`
-5. Start scraping using Prometheus and configure a Grafana Dashboard to your liking
+5. Start scraping using Prometheus and import the [sample Dashboard](https://grafana.com/grafana/dashboards/11345) into Grafana
 
 ![Sample Grafana Dashboard](images/grafana.png)
