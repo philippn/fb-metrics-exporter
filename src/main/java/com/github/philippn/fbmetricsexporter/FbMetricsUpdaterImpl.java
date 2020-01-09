@@ -16,15 +16,18 @@ package com.github.philippn.fbmetricsexporter;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.ToDoubleFunction;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.kaklakariada.fritzbox.HomeAutomation;
+import com.github.kaklakariada.fritzbox.http.AccessForbiddenException;
 import com.github.kaklakariada.fritzbox.model.homeautomation.Device;
 import com.github.kaklakariada.fritzbox.model.homeautomation.DeviceList;
 
@@ -39,6 +42,7 @@ public class FbMetricsUpdaterImpl implements FbMetricsUpdater {
 	private static final Logger logger = LoggerFactory.getLogger(FbMetricsUpdaterImpl.class);
 
 	private HomeAutomation homeAutomation;
+	private FbProperties properties;
 	private MeterRegistry meterRegistry;
 
 	private AtomicInteger devicesTotal = new AtomicInteger();
@@ -49,12 +53,19 @@ public class FbMetricsUpdaterImpl implements FbMetricsUpdater {
 	private Map<String, AtomicInteger> hkrTsollByDevice = new HashMap<>();
 
 	/**
-	 * @param homeAutomation
+	 * @param properties
 	 * @param meterRegistry
 	 */
-	public FbMetricsUpdaterImpl(HomeAutomation homeAutomation, MeterRegistry meterRegistry) {
-		this.homeAutomation = homeAutomation;
+	public FbMetricsUpdaterImpl(FbProperties properties, MeterRegistry meterRegistry) {
+		this.properties = properties;
 		this.meterRegistry = meterRegistry;
+	}
+
+	/**
+	 * @param homeAutomation the homeAutomation to set
+	 */
+	public void setHomeAutomation(HomeAutomation homeAutomation) {
+		this.homeAutomation = homeAutomation;
 	}
 
 	@PostConstruct
@@ -63,9 +74,26 @@ public class FbMetricsUpdaterImpl implements FbMetricsUpdater {
 		meterRegistry.gauge("fritzbox_devices_present", devicesPresent);
 	}
 
+	@PreDestroy
+	public void shutdown() {
+		if (homeAutomation != null) {
+			homeAutomation.logout();
+		}
+	}
+
 	@Override
 	public void update() {
-		DeviceList deviceList = homeAutomation.getDeviceListInfos();
+		if (homeAutomation == null) {
+			connectToFritzBox();
+		}
+		DeviceList deviceList;
+		try {
+			deviceList = homeAutomation.getDeviceListInfos();
+		} catch (AccessForbiddenException e) {
+			// Perhaps the FRITZ!Box was restarted?
+			connectToFritzBox();
+			deviceList = homeAutomation.getDeviceListInfos();
+		}
 		devicesTotal.set(deviceList.getDevices().size());
 		devicesPresent.set(deviceList.getDevices().stream().mapToInt(d -> d.isPresent() ? 1 : 0).sum());
 		for (Device device : deviceList.getDevices()) {
@@ -73,17 +101,22 @@ public class FbMetricsUpdaterImpl implements FbMetricsUpdater {
 				continue;
 			}
 			// Battery
-			AtomicInteger holder = getGaugeHolder(device, batteryByDevice, "fritzbox_device_battery_percent", null);
-			holder.set(device.getBattery());
-			logger.debug("Updated battery for device '{}' (id: {})", device.getName(), device.getId());
+			Optional<Integer> battery = device.getBattery();
+			if (battery.isPresent()) {
+				AtomicInteger holder = getGaugeHolder(device, batteryByDevice, "fritzbox_device_battery_percent", null);
+				holder.set(battery.get());
+				logger.debug("Updated battery for device '{}' (id: {})", device.getName(), device.getId());
+			}
 			// Temperature
-			holder = getGaugeHolder(device, temperatureByDevice, "fritzbox_device_temperature_celsius", this::intBitsToDouble);
-			holder.set(Float.floatToIntBits(device.getTemperature().getCelsius()));
-			logger.debug("Updated temperature for device '{}' (id: {})", device.getName(), device.getId());
+			if (device.getTemperature() != null) {
+				AtomicInteger holder = getGaugeHolder(device, temperatureByDevice, "fritzbox_device_temperature_celsius", this::intBitsToDouble);
+				holder.set(Float.floatToIntBits(device.getTemperature().getCelsius()));
+				logger.debug("Updated temperature for device '{}' (id: {})", device.getName(), device.getId());
+			}
 			// Hkr
 			if (device.getHkr() != null) {
 				// Tist
-				holder = getGaugeHolder(device, hkrTistByDevice, "fritzbox_device_hkr_tist_celsius", this::fritzTempToDouble);
+				AtomicInteger holder = getGaugeHolder(device, hkrTistByDevice, "fritzbox_device_hkr_tist_celsius", this::fritzTempToDouble);
 				holder.set(device.getHkr().getTist());
 				logger.debug("Updated Tist for device '{}' (id: {})", device.getName(), device.getId());
 				// Tist
@@ -92,6 +125,10 @@ public class FbMetricsUpdaterImpl implements FbMetricsUpdater {
 				logger.debug("Updated Tsoll for device '{}' (id: {})", device.getName(), device.getId());
 			}
 		}
+	}
+
+	private void connectToFritzBox() {
+		homeAutomation = HomeAutomation.connect(properties.getBaseUrl(), properties.getUsername(), properties.getPassword());
 	}
 
 	private AtomicInteger getGaugeHolder(Device device, Map<String, AtomicInteger> map, String gaugeName, 

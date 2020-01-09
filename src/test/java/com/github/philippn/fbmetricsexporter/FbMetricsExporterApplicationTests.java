@@ -24,7 +24,6 @@ import org.simpleframework.xml.Serializer;
 import org.simpleframework.xml.core.Persister;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.github.kaklakariada.fritzbox.HomeAutomation;
@@ -36,8 +35,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 @ActiveProfiles("test")
 class FbMetricsExporterApplicationTests {
 
-	@MockBean
-	private HomeAutomation homeAutomation;
 	@Autowired
 	private MeterRegistry meterRegistry;
 	@Autowired
@@ -48,8 +45,10 @@ class FbMetricsExporterApplicationTests {
 		Serializer serializer = new Persister();
 		InputStream in = getClass().getResourceAsStream("devicelist.xml");
 		DeviceList list = serializer.read(DeviceList.class, in);
+		HomeAutomation homeAutomation = Mockito.mock(HomeAutomation.class);
 		Mockito.when(homeAutomation.getDeviceListInfos()).thenReturn(list);
 		
+		metricsUpdater.setHomeAutomation(homeAutomation);
 		metricsUpdater.update();
 		
 		assertEquals(2, meterRegistry.find("fritzbox_devices_total").gauge().value());

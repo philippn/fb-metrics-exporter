@@ -14,10 +14,14 @@
  */
 package com.github.philippn.fbmetricsexporter;
 
+import com.github.kaklakariada.fritzbox.HomeAutomation;
+
 /**
  * @author Philipp Nanz
  */
 public interface FbMetricsUpdater {
+
+	void setHomeAutomation(HomeAutomation homeAutomation);
 
 	void update();
 }

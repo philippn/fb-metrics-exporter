@@ -19,8 +19,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
-import com.github.kaklakariada.fritzbox.HomeAutomation;
-
 import io.micrometer.core.instrument.MeterRegistry;
 
 /**
@@ -35,12 +33,7 @@ public class FbMetricsExporterApplication {
 	}
 
 	@Bean
-	public HomeAutomation homeAutomation(FbProperties properties) {
-		return HomeAutomation.connect(properties.getBaseUrl(), properties.getUsername(), properties.getPassword());
-	}
-
-	@Bean
-	public FbMetricsUpdater metricsUpdater(HomeAutomation homeAutomation, MeterRegistry meterRegistry) {
-		return new FbMetricsUpdaterImpl(homeAutomation, meterRegistry);
+	public FbMetricsUpdater metricsUpdater(FbProperties properties, MeterRegistry meterRegistry) {
+		return new FbMetricsUpdaterImpl(properties, meterRegistry);
 	}
 }

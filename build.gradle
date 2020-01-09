@@ -15,7 +15,7 @@ repositories {
 }
 
 dependencies {
-	implementation 'com.github.kaklakariada:fritzbox-java-api:0.7.0'
+	implementation 'com.github.kaklakariada:fritzbox-java-api:1.0.0'
 	implementation 'io.micrometer:micrometer-registry-prometheus'
 	implementation 'org.springframework.boot:spring-boot-starter'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
